@@ -37,13 +37,17 @@ def get_customer_orders(customer_id: int, db: Session = Depends(get_db)):
         "orders": orders
     }
 
-
 # Define Pydantic Model for Product
 class ProductCreate(BaseModel):
     name: str
     category: str
     price: float
     stock_quantity: int
+
+class ProductResponse(ProductCreate):
+    product_id: int
+    class Config:
+        orm_mode = True
 
 # Corrected POST request using request body
 @router.post("/products/")
@@ -58,3 +62,10 @@ def create_product(product: ProductCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_product)
     return {"message": "Product added successfully", "product": new_product}
+
+@router.get("/products/{product_id}", response_model=ProductResponse)
+def get_product(product_id: int, db: Session = Depends(get_db)):
+    product = db.query(Product).filter(Product.product_id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    return product
